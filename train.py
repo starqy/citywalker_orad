@@ -6,6 +6,7 @@ import yaml
 import os
 from pl_modules.citywalk_datamodule import CityWalkDataModule
 from pl_modules.teleop_datamodule import TeleopDataModule
+from pl_modules.offroad_datamodule import OffroadDataModule
 from pl_modules.citywalker_module import CityWalkerModule
 from pl_modules.citywalker_feat_module import CityWalkerFeatModule
 from pl_modules.citywalk_feat_datamodule import CityWalkFeatDataModule
@@ -28,9 +29,9 @@ class DictNamespace(argparse.Namespace):
                 setattr(self, key, value)
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Train UrbanNav model')
-    parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to config file')
-    parser.add_argument('--checkpoint', type=str, default=None, help='Path to model checkpoint. If not provided, the latest checkpoint will be used.')
+    parser = argparse.ArgumentParser(description='Train Offroad model')
+    parser.add_argument('--config', type=str, default='config/offroad_finetune.yaml', help='Path to config file')
+    parser.add_argument('--checkpoint', type=str, default="/Data/qy/AD/CityWalker/ckpts/CityWalker_2000hr.ckpt", help='Path to model checkpoint. If not provided, the latest checkpoint will be used.')
     args = parser.parse_args()
     return args
 
@@ -82,6 +83,8 @@ def main():
         datamodule = CityWalkDataModule(cfg)
     elif cfg.data.type == 'teleop':
         datamodule = TeleopDataModule(cfg)
+    elif cfg.data.type == 'offroad':
+        datamodule = OffroadDataModule(cfg)
     elif cfg.data.type == 'citywalk_feat':
         datamodule = CityWalkFeatDataModule(cfg)
     else:
@@ -183,4 +186,5 @@ def main():
         trainer.fit(model, datamodule=datamodule)
 
 if __name__ == '__main__':
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     main()

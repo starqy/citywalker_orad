@@ -6,6 +6,7 @@ import yaml
 import os
 from pl_modules.citywalk_datamodule import CityWalkDataModule
 from pl_modules.teleop_datamodule import TeleopDataModule
+from pl_modules.offroad_datamodule import OffroadDataModule
 from pl_modules.citywalker_module import CityWalkerModule
 from pl_modules.citywalker_feat_module import CityWalkerFeatModule
 import torch
@@ -26,8 +27,8 @@ class DictNamespace(argparse.Namespace):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Test UrbanNav model')
-    parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to config file')
-    parser.add_argument('--checkpoint', type=str, default=None, help='Path to model checkpoint. If not provided, the latest checkpoint will be used.')
+    parser.add_argument('--config', type=str, default='config/offroad_finetune.yaml', help='Path to config file')
+    parser.add_argument('--checkpoint', type=str, default="/Data/qy/AD/CityWalker/results/offroad_train/checkpoints/epoch=7-step=4488.ckpt", help='Path to model checkpoint. If not provided, the latest checkpoint will be used.')
     parser.add_argument('--save_predictions', action='store_true', help='Whether to save predictions')
     args = parser.parse_args()
     return args
@@ -77,6 +78,8 @@ def main():
         datamodule = CityWalkDataModule(cfg)
     elif cfg.data.type == 'teleop':
         datamodule = TeleopDataModule(cfg)
+    elif cfg.data.type == 'offroad':
+        datamodule = OffroadDataModule(cfg)
     else:
         raise ValueError(f"Invalid dataset: {cfg.data.dataset}")
 
@@ -118,4 +121,5 @@ def main():
 
 
 if __name__ == '__main__':
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     main()

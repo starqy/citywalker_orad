@@ -1,0 +1,96 @@
+project:
+  name: 'CityWalker_Offroad'
+  run_name: 'offroad_test'
+  result_dir: 'results'
+
+training:
+  batch_size: 32
+  max_epochs: 18
+  gpus: 1
+  amp: false
+  normalize_step_length: false
+  resume: true
+  direction_loss_weight: 5.0
+  feature_loss_weight: 0.1
+
+scheduler:
+  name: 'cosine'
+  step_size: 10
+  gamma: 0.1
+
+optimizer:
+  name: 'adamw'
+  lr: 5e-5
+
+model:
+  type: 'citywalker_feat'
+  do_rgb_normalize: true
+  do_resize: true
+  obs_encoder:
+    type: 'dinov2_vitb14'
+    context_size: 5
+    crop: [400, 400]
+    resize: [392, 392]
+    freeze: true
+  output_coordinate_repr: 'euclidean'
+
+  cord_embedding:
+    type: 'input_target'
+    num_freqs: 6
+    include_input: true
+
+  encoder_feat_dim: 768
+
+  decoder:
+    type: 'attention'
+    len_traj_pred: 5
+    num_heads: 8
+    num_layers: 16
+    ff_dim_factor: 4
+
+data:
+  type: offroad
+  root_dir: '/Data/qy/AD/CityWalker/offroad_dataset'
+  num_workers: 8
+  frame_size: [400, 400]
+  num_train: 1000
+  num_val: 200
+  num_test: 200
+  search_window: 50
+  arrived_threshold: 5
+  arrived_prob: 0.3
+  default_category: 'other'
+  subdatasets:
+    OR-C2P:
+      train: 100
+      val: 16
+      test: 28
+    RELLIS3D:
+      train: 3
+      val: 1
+      test: 1
+    Tartan_Drive:
+      train: 430
+      val: 61
+      test: 124
+    WildScene:
+      train: 3
+      val: 1
+      test: 1
+    recon_process:
+      train: 8284
+      val: 1183
+      test: 2368
+    collect_data:
+      train: 1
+      val: 0
+      test: 0
+
+validation:
+  num_visualize: 20
+testing:
+  num_visualize: 20
+
+logging:
+  enable_wandb: false
+  pbar_rate: 1

@@ -44,7 +44,7 @@ class CityWalkerModule(pl.LightningModule):
             self.distance_loss_weight = cfg.training.distance_loss_weight
             self.angle_loss_weight = cfg.training.angle_loss_weight
 
-        if self.datatype == "urbannav":
+        if self.datatype in {"urbannav", "offroad"}:
             self.test_catetories = ['crowd', 'person_close_by', 'turn', 'action_target_mismatch', 'crossing', 'other']
             self.num_categories = len(self.test_catetories)
 
@@ -184,7 +184,7 @@ class CityWalkerModule(pl.LightningModule):
                 self.test_metrics['l1_loss'].append(l1_loss)
             self.test_metrics['arrived_accuracy'].append(accuracy)
             self.test_metrics['mean_angle'].append(mean_angle)
-        elif self.datatype == "urbannav":
+        elif self.datatype in {"urbannav", "offroad"}:
             category = batch['categories']
             wp_pred, arrive_pred = self(obs, cord)
             wp_pred *= batch['step_scale'].unsqueeze(-1).unsqueeze(-1)
@@ -274,7 +274,7 @@ class CityWalkerModule(pl.LightningModule):
                     mean_angle = metric_array.mean(axis=0)
                     for i in range(len(mean_angle)):
                         print(f"Test mean angle at step {i} {mean_angle[i]:.4f}")
-        elif self.datatype == "urbannav":
+        elif self.datatype in {"urbannav", "offroad"}:
             import pandas as pd
             for category in self.test_catetories:
                 # Add a new 'count' metric for each category by counting 'l1_loss' entries
@@ -314,7 +314,7 @@ class CityWalkerModule(pl.LightningModule):
                 self.test_metrics = {'l1_loss': [], 'arrived_accuracy': [], 'mean_angle': []}
             elif self.output_coordinate_repr == "polar":
                 self.test_metrics = {'distance_loss': [], 'angle_loss': [], 'arrived_accuracy': [], 'mean_angle': []}
-        elif self.datatype == "urbannav":
+        elif self.datatype in {"urbannav", "offroad"}:
             self.test_metrics = {}
             categories = self.test_catetories[:]
             categories.extend(['mean', 'overall'])
@@ -331,7 +331,7 @@ class CityWalkerModule(pl.LightningModule):
                         'mean_angle': []
                     }
                 elif self.output_coordinate_repr == "polar":
-                    raise ValueError("Polar representation is not supported for UrbanNav dataset.")
+                    raise ValueError("Polar representation is not supported for UrbanNav/offroad dataset.")
 
     def compute_loss(self, wp_pred, arrive_pred, batch):
         waypoints_target = batch['waypoints']

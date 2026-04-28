@@ -6,6 +6,7 @@ import yaml
 import os
 from pl_modules.citywalk_datamodule import CityWalkDataModule
 from pl_modules.teleop_datamodule import TeleopDataModule
+from pl_modules.offroad_datamodule import OffroadDataModule
 from pl_modules.citywalker_module import CityWalkerModule
 from pl_modules.citywalker_feat_module import CityWalkerFeatModule
 import torch
@@ -55,6 +56,8 @@ def main():
         datamodule = CityWalkDataModule(cfg)
     elif cfg.data.type == 'teleop':
         datamodule = TeleopDataModule(cfg)
+    elif cfg.data.type == 'offroad':
+        datamodule = OffroadDataModule(cfg)
     else:
         raise ValueError(f"Invalid dataset: {cfg.data.type}")
 

@@ -64,7 +64,7 @@ class TeleopDataset(Dataset):
 
         for f in tqdm(self.pose_path, desc="Loading data"):
             seq_idx = ''.join(filter(str.isdigit, os.path.basename(f)))
-            image_folder = os.path.join(self.image_root_dir, f'traj_{seq_idx}')
+            image_folder = os.path.join(self.image_root_dir, f'traj_nav_{seq_idx}')
             if not os.path.exists(image_folder):
                 raise FileNotFoundError(f"Image folder {image_folder} does not exist.")
             self.image_folders.append(image_folder)

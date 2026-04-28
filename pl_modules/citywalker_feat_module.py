@@ -41,7 +41,7 @@ class CityWalkerFeatModule(pl.LightningModule):
         self.image_mean = np.array([0.485, 0.456, 0.406])
         self.image_std = np.array([0.229, 0.224, 0.225])
 
-        if self.datatype == "teleop":
+        if self.datatype in {"teleop", "offroad"}:
             self.test_catetories = ['crowd', 'person_close_by', 'turn', 'action_target_mismatch', 'crossing', 'other']
             self.num_categories = len(self.test_catetories)
 
@@ -122,9 +122,10 @@ class CityWalkerFeatModule(pl.LightningModule):
         
         if self.datatype == "citywalk":
             wp_pred, arrive_pred, _, _ = self(obs, cord, future_obs)
-            # Compute L1 loss for waypoints
+            # Compute waypoint errors
             waypoints_target = batch['waypoints']
             l1_loss = F.l1_loss(wp_pred, waypoints_target, reduction='mean').item()
+            l2_loss = (wp_pred - waypoints_target).norm(dim=-1).mean().item()
             
             # Compute accuracy for "arrived" prediction
             arrived_target = batch['arrived']
@@ -156,18 +157,20 @@ class CityWalkerFeatModule(pl.LightningModule):
             # Store the metrics
             if self.output_coordinate_repr == "euclidean":
                 self.test_metrics['l1_loss'].append(l1_loss)
+                self.test_metrics['l2_loss'].append(l2_loss)
             self.test_metrics['arrived_accuracy'].append(accuracy)
             self.test_metrics['mean_angle'].append(mean_angle)
-        elif self.datatype == "teleop":
+        elif self.datatype in {"teleop", "offroad"}:
             category = batch['categories']
             wp_pred, arrive_pred, _, _ = self(obs, cord, future_obs)
             wp_pred *= batch['step_scale'].unsqueeze(-1).unsqueeze(-1)
             
-            # Compute L1 loss for waypoints
+            # Compute waypoint errors
             waypoints_target = batch['waypoints']
             waypoints_target *= batch['step_scale'].unsqueeze(-1).unsqueeze(-1)
             # l1_loss = F.l1_loss(wp_pred, waypoints_target, reduction='none')
             l1_loss = F.mse_loss(wp_pred, waypoints_target, reduction='none') ** 0.5
+            l2_loss = (wp_pred - waypoints_target).norm(dim=-1)
             
             # Compute accuracy for "arrived" prediction
             arrived_target = batch['arrived']
@@ -194,6 +197,7 @@ class CityWalkerFeatModule(pl.LightningModule):
                     if category[batch_idx, category_idx] == 1:
                         category_name = self.test_catetories[category_idx]
                         self.test_metrics[category_name]['l1_loss'].append(l1_loss[batch_idx].max().item())
+                        self.test_metrics[category_name]['l2_loss'].append(l2_loss[batch_idx].max().item())
                         self.test_metrics[category_name]['arrived_accuracy'].append(correct[batch_idx].item())
                         if gt_wp_last_norm[batch_idx] > 1:
                             self.test_metrics[category_name]['mean_angle'].append(angle[batch_idx].max().item())
@@ -205,6 +209,7 @@ class CityWalkerFeatModule(pl.LightningModule):
                     else:
                         continue
                 self.test_metrics['overall']['l1_loss'].append(l1_loss[batch_idx].max().item())
+                self.test_metrics['overall']['l2_loss'].append(l2_loss[batch_idx].max().item())
                 self.test_metrics['overall']['arrived_accuracy'].append(correct[batch_idx].item())
                 if gt_wp_last_norm[batch_idx] > 1:
                     self.test_metrics['overall']['mean_angle'].append(angle[batch_idx].max().item())
@@ -247,7 +252,7 @@ class CityWalkerFeatModule(pl.LightningModule):
                     mean_angle = metric_array.mean(axis=0)
                     for i in range(len(mean_angle)):
                         print(f"Test mean angle at step {i} {mean_angle[i]:.4f}")
-        elif self.datatype == "teleop":
+        elif self.datatype in {"teleop", "offroad"}:
             import pandas as pd
             for category in self.test_catetories:
                 # Add a new 'count' metric for each category by counting 'l1_loss' entries
@@ -263,7 +268,7 @@ class CityWalkerFeatModule(pl.LightningModule):
             for metric in self.test_metrics['overall']:
                 if metric != 'count':
                     self.test_metrics['overall'][metric] = np.nanmean(np.array(self.test_metrics['overall'][metric]))
-            metrics = ['l1_loss', 'arrived_accuracy', 'angle_step1', 'angle_step2', 'angle_step3', 'angle_step4', 'angle_step5', 'mean_angle']
+            metrics = ['l1_loss', 'l2_loss', 'arrived_accuracy', 'angle_step1', 'angle_step2', 'angle_step3', 'angle_step4', 'angle_step5', 'mean_angle']
             for metric in metrics:
                 category_val = []
                 for category in self.test_catetories:
@@ -284,10 +289,10 @@ class CityWalkerFeatModule(pl.LightningModule):
         self.vis_count = 0
         if self.datatype == "citywalk":
             if self.output_coordinate_repr == "euclidean":
-                self.test_metrics = {'l1_loss': [], 'arrived_accuracy': [], 'mean_angle': []}
+                self.test_metrics = {'l1_loss': [], 'l2_loss': [], 'arrived_accuracy': [], 'mean_angle': []}
             elif self.output_coordinate_repr == "polar":
                 self.test_metrics = {'distance_loss': [], 'angle_loss': [], 'arrived_accuracy': [], 'mean_angle': []}
-        elif self.datatype == "teleop":
+        elif self.datatype in {"teleop", "offroad"}:
             self.test_metrics = {}
             categories = self.test_catetories[:]
             categories.extend(['mean', 'overall'])
@@ -295,6 +300,7 @@ class CityWalkerFeatModule(pl.LightningModule):
                 if self.output_coordinate_repr == "euclidean":
                     self.test_metrics[category] = {
                         'l1_loss': [], 
+                        'l2_loss': [],
                         'arrived_accuracy': [], 
                         'angle_step1': [],
                         'angle_step2': [],
@@ -304,7 +310,7 @@ class CityWalkerFeatModule(pl.LightningModule):
                         'mean_angle': []
                     }
                 elif self.output_coordinate_repr == "polar":
-                    raise ValueError("Polar representation is not supported for teleop dataset.")
+                    raise ValueError("Polar representation is not supported for teleop/offroad dataset.")
 
     def compute_loss(self, wp_pred, arrive_pred, feature_pred, feature_gt, batch):
         waypoints_target = batch['waypoints']

@@ -1,4 +1,5 @@
 results/
+ckpts/
 logs
 dataset/citywalk
 dataset/teleop
