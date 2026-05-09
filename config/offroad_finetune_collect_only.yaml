@@ -1,6 +1,6 @@
 project:
   name: 'CityWalker_Offroad'
-  run_name: 'offroad_finetune'
+  run_name: 'offroad_finetune_collect_only'
   result_dir: 'results'
 
 training:
@@ -62,25 +62,29 @@ data:
   default_category: 'other'
   subdatasets:
     OR-C2P:
-      train: 100
-      val: 16
-      test: 28
+      train: 0
+      val: 0
+      test: 0
     RELLIS3D:
-      train: 3
-      val: 1
-      test: 1
+      train: 0
+      val: 0
+      test: 0
     Tartan_Drive:
-      train: 430
-      val: 61
-      test: 124
+      train: 0
+      val: 0
+      test: 0
     WildScene:
-      train: 3
+      train: 0
+      val: 0
+      test: 0
+    recon_process:
+      train: 0
+      val: 0
+      test: 0
+    collect_data:
+      train: 5
       val: 1
       test: 1
-    recon_process:
-      train: 8284
-      val: 1183
-      test: 2368
 
 validation:
   num_visualize: 20
