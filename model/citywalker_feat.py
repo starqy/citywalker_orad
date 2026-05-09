@@ -29,7 +29,13 @@ class CityWalkerFeat(nn.Module):
 
         # Observation Encoder
         if self.obs_encoder_type.startswith("dinov2"):
-            self.obs_encoder = torch.hub.load('facebookresearch/dinov2', self.obs_encoder_type)
+            pretrained = getattr(cfg.model.obs_encoder, "pretrained", False)
+            self.obs_encoder = torch.hub.load(
+                "/media/isee324/2a90eb70-2d62-4af4-b04a-0fcdde4122a5/qy/AD/dinov2-jetson/",
+                self.obs_encoder_type,
+                source="local",
+                pretrained=pretrained,
+            )
             feature_dim = {
                 "dinov2_vits14": 384,
                 "dinov2_vitb14": 768,
