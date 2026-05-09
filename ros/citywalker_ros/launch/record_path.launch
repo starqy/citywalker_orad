@@ -1,0 +1,23 @@
+<launch>
+  <arg name="pose_topic" default="/lio_sam/mapping/odometry" />
+  <arg name="pose_msg_type" default="Odometry" />
+  <arg name="frame_id" default="map" />
+  <arg name="output_file" default="/media/isee324/2a90eb70-2d62-4af4-b04a-0fcdde4122a5/qy/AD/citywalker_orad/ros/citywalker_ros/config/sample_path.csv" />
+  <arg name="min_distance" default="0.3" />
+  <arg name="min_yaw_delta" default="0.25" />
+  <arg name="final_sparsify_distance" default="0.5" />
+  <arg name="save_format" default="csv" />
+  <arg name="autostart" default="true" />
+
+  <node pkg="citywalker_ros" type="path_recorder_node.py" name="path_recorder_node" output="screen">
+    <param name="pose_topic" value="$(arg pose_topic)" />
+    <param name="pose_msg_type" value="$(arg pose_msg_type)" />
+    <param name="frame_id" value="$(arg frame_id)" />
+    <param name="output_file" value="$(arg output_file)" />
+    <param name="min_distance" value="$(arg min_distance)" />
+    <param name="min_yaw_delta" value="$(arg min_yaw_delta)" />
+    <param name="final_sparsify_distance" value="$(arg final_sparsify_distance)" />
+    <param name="save_format" value="$(arg save_format)" />
+    <param name="autostart" value="$(arg autostart)" />
+  </node>
+</launch>

@@ -1,0 +1,50 @@
+frames:
+  map_frame: map
+  base_frame: base_link
+
+topics:
+  image: /camera/color/image_raw
+  pose: /slam_pose
+  pose_msg_type: Odometry      # PoseStamped or Odometry
+  cmd_vel: /cmd_vel
+  cmd_msg_type: Twist          # Twist or TwistStamped
+  enable: /citywalker/enable
+
+global_path:
+  path_file: ""                # CSV/YAML path file. CSV columns: x,y[,yaw]
+  goal_mode: waypoint_sequence # waypoint_sequence or lookahead
+  waypoint_spacing: 5.0
+  switch_distance: 1.0
+  lookahead_distance: 5.0
+  nearest_search_window: 300
+  publish_rate: 10.0
+
+history:
+  context_size: 5
+  history_duration: 2.0
+  sample_interval: 0.5
+  publish_rate: 10.0
+  max_lookup_dt: 1.0
+
+inference:
+  repo_root: /media/isee324/2a90eb70-2d62-4af4-b04a-0fcdde4122a5/qy/AD/citywalker_orad
+  config: /media/isee324/2a90eb70-2d62-4af4-b04a-0fcdde4122a5/qy/AD/citywalker_orad/config/offroad_finetune.yaml
+  checkpoint: /media/isee324/2a90eb70-2d62-4af4-b04a-0fcdde4122a5/qy/AD/citywalker_orad/ckpts/epoch=14-step=134983.ckpt
+  engine: /media/isee324/2a90eb70-2d62-4af4-b04a-0fcdde4122a5/qy/AD/citywalker_orad/exports/dinov2_vitb14_offroad_392x392_fp16.engine
+  dtype: fp16
+  image_encoding: bgr8
+  step_scale: 1.0              # Must match training coordinate normalization scale for real deployment.
+  max_bundle_age: 0.5
+
+controller:
+  enabled: false               # Start disabled; publish std_msgs/Bool true to /citywalker/enable.
+  control_rate: 20.0
+  nominal_speed: 0.4
+  min_speed: 0.0
+  max_speed: 0.6
+  max_angular: 1.2
+  lookahead_distance: 1.0
+  goal_stop_distance: 0.3
+  path_timeout: 0.5
+  arrived_threshold: 0.5
+  stop_on_arrived: true

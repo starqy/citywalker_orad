@@ -1,0 +1,25 @@
+<launch>
+  <arg name="map_frame" default="map" />
+  <arg name="base_frame" default="base_link" />
+  <arg name="pose_topic" default="/slam_pose" />
+  <arg name="pose_msg_type" default="Odometry" />
+  <arg name="cmd_topic" default="/cmd_vel" />
+  <arg name="cmd_msg_type" default="Twist" />
+  <arg name="use_gazebo_visuals" default="true" />
+
+  <node pkg="citywalker_ros" type="citywalker_visualization_node.py" name="citywalker_visualization_node" output="screen">
+    <param name="map_frame" value="$(arg map_frame)" />
+    <param name="base_frame" value="$(arg base_frame)" />
+    <param name="pose_topic" value="$(arg pose_topic)" />
+    <param name="pose_msg_type" value="$(arg pose_msg_type)" />
+    <param name="reference_path_topic" value="/global_path_node/reference_path" />
+    <param name="goal_sequence_topic" value="/global_path_node/goal_sequence" />
+    <param name="goal_topic" value="/global_path_node/local_goal_base" />
+    <param name="history_topic" value="/history_buffer_node/history" />
+    <param name="waypoints_topic" value="/inference_node/waypoints" />
+    <param name="cmd_topic" value="$(arg cmd_topic)" />
+    <param name="cmd_msg_type" value="$(arg cmd_msg_type)" />
+    <param name="use_gazebo_models" value="$(arg use_gazebo_visuals)" />
+    <param name="gazebo_reference_frame" value="world" />
+  </node>
+</launch>

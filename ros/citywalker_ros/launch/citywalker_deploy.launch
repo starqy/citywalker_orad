@@ -1,0 +1,125 @@
+<launch>
+  <arg name="map_frame" default="odom" />
+  <arg name="base_frame" default="base_link" />
+  <arg name="image_topic" default="/camera/image_raw" />
+  <arg name="pose_topic" default="/lio_sam/mapping/odometry" />
+  <arg name="pose_msg_type" default="Odometry" />
+  <arg name="cmd_topic" default="/cmd_vel_twist" />
+  <arg name="cmd_msg_type" default="Twist" />
+  <arg name="cmd_frame_id" default="base_link" />
+  <arg name="enable_topic" default="/citywalker/enable" />
+  <arg name="controller_enabled" default="true" />
+  <arg name="path_file" default="/media/isee324/2a90eb70-2d62-4af4-b04a-0fcdde4122a5/qy/AD/citywalker_orad/ros/citywalker_ros/config/sample_path.csv" />
+  <arg name="goal_mode" default="waypoint_sequence" />
+  <arg name="waypoint_spacing" default="10.0" />
+  <arg name="switch_distance" default="1.0" />
+  <arg name="lookahead_distance" default="10.0" />
+
+  <arg name="repo_root" default="/media/isee324/2a90eb70-2d62-4af4-b04a-0fcdde4122a5/qy/AD/citywalker_orad" />
+  <arg name="model_config" default="$(arg repo_root)/config/offroad_finetune.yaml" />
+  <arg name="checkpoint" default="$(arg repo_root)/ckpts/epoch=14-step=134983.ckpt" />
+  <arg name="engine" default="$(arg repo_root)/exports/dinov2_vitb14_offroad_392x392_fp16.engine" />
+
+  <arg name="context_size" default="5" />
+  <arg name="history_duration" default="2.0" />
+  <arg name="sample_interval" default="0.5" />
+  <arg name="history_rate" default="10.0" />
+  <arg name="history_max_lookup_dt" default="1.0" />
+  <arg name="step_scale" default="1.0" />
+  <arg name="use_conda_inference" default="true" />
+  <arg name="conda_setup" default="/media/isee324/2a90eb70-2d62-4af4-b04a-0fcdde4122a5/anaconda3/etc/profile.d/conda.sh" />
+  <arg name="conda_env" default="dino" />
+  <arg name="enable_visualization" default="true" />
+  <arg name="use_gazebo_visuals" default="false" />
+
+  <node pkg="citywalker_ros" type="global_path_node.py" name="global_path_node" output="screen">
+    <param name="path_file" value="$(arg path_file)" />
+    <param name="path_frame" value="$(arg map_frame)" />
+    <param name="base_frame" value="$(arg base_frame)" />
+    <param name="pose_topic" value="$(arg pose_topic)" />
+    <param name="pose_msg_type" value="$(arg pose_msg_type)" />
+    <param name="goal_mode" value="$(arg goal_mode)" />
+    <param name="lookahead_distance" value="$(arg lookahead_distance)" />
+    <param name="waypoint_spacing" value="$(arg waypoint_spacing)" />
+    <param name="switch_distance" value="$(arg switch_distance)" />
+    <param name="nearest_search_window" value="300" />
+    <param name="publish_rate" value="10.0" />
+  </node>
+
+  <node pkg="citywalker_ros" type="history_buffer_node.py" name="history_buffer_node" output="screen">
+    <param name="image_topic" value="$(arg image_topic)" />
+    <param name="pose_topic" value="$(arg pose_topic)" />
+    <param name="pose_msg_type" value="$(arg pose_msg_type)" />
+    <param name="goal_topic" value="/global_path_node/local_goal_base" />
+    <param name="base_frame" value="$(arg base_frame)" />
+    <param name="context_size" value="$(arg context_size)" />
+    <param name="history_duration" value="$(arg history_duration)" />
+    <param name="sample_interval" value="$(arg sample_interval)" />
+    <param name="publish_rate" value="$(arg history_rate)" />
+    <param name="max_lookup_dt" value="$(arg history_max_lookup_dt)" />
+  </node>
+
+  <node if="$(arg use_conda_inference)" pkg="citywalker_ros" type="inference_node_conda.py" name="inference_node" output="screen">
+    <env name="CITYWALKER_CONDA_SETUP" value="$(arg conda_setup)" />
+    <env name="CITYWALKER_CONDA_ENV" value="$(arg conda_env)" />
+    <param name="repo_root" value="$(arg repo_root)" />
+    <param name="config" value="$(arg model_config)" />
+    <param name="checkpoint" value="$(arg checkpoint)" />
+    <param name="engine" value="$(arg engine)" />
+    <param name="history_topic" value="/history_buffer_node/history" />
+    <param name="base_frame" value="$(arg base_frame)" />
+    <param name="dtype" value="fp16" />
+    <param name="image_encoding" value="bgr8" />
+    <param name="step_scale" value="$(arg step_scale)" />
+    <param name="max_bundle_age" value="0.5" />
+  </node>
+
+  <node unless="$(arg use_conda_inference)" pkg="citywalker_ros" type="inference_node.py" name="inference_node" output="screen">
+    <param name="repo_root" value="$(arg repo_root)" />
+    <param name="config" value="$(arg model_config)" />
+    <param name="checkpoint" value="$(arg checkpoint)" />
+    <param name="engine" value="$(arg engine)" />
+    <param name="history_topic" value="/history_buffer_node/history" />
+    <param name="base_frame" value="$(arg base_frame)" />
+    <param name="dtype" value="fp16" />
+    <param name="image_encoding" value="bgr8" />
+    <param name="step_scale" value="$(arg step_scale)" />
+    <param name="max_bundle_age" value="0.5" />
+  </node>
+
+  <node pkg="citywalker_ros" type="waypoint_follower_node.py" name="waypoint_follower_node" output="screen">
+    <param name="waypoints_topic" value="/inference_node/waypoints" />
+    <param name="arrived_topic" value="/inference_node/arrived_prob" />
+    <param name="cmd_topic" value="$(arg cmd_topic)" />
+    <param name="cmd_msg_type" value="$(arg cmd_msg_type)" />
+    <param name="cmd_frame_id" value="$(arg cmd_frame_id)" />
+    <param name="enable_topic" value="$(arg enable_topic)" />
+    <param name="enabled" value="$(arg controller_enabled)" />
+    <param name="control_rate" value="20.0" />
+    <param name="nominal_speed" value="0.4" />
+    <param name="min_speed" value="0.0" />
+    <param name="max_speed" value="0.6" />
+    <param name="max_angular" value="1.2" />
+    <param name="lookahead_distance" value="1.0" />
+    <param name="goal_stop_distance" value="0.3" />
+    <param name="path_timeout" value="0.5" />
+    <param name="arrived_threshold" value="0.9" />
+    <param name="stop_on_arrived" value="true" />
+  </node>
+
+  <node if="$(arg enable_visualization)" pkg="citywalker_ros" type="citywalker_visualization_node.py" name="citywalker_visualization_node" output="screen">
+    <param name="map_frame" value="$(arg map_frame)" />
+    <param name="base_frame" value="$(arg base_frame)" />
+    <param name="pose_topic" value="$(arg pose_topic)" />
+    <param name="pose_msg_type" value="$(arg pose_msg_type)" />
+    <param name="reference_path_topic" value="/global_path_node/reference_path" />
+    <param name="goal_sequence_topic" value="/global_path_node/goal_sequence" />
+    <param name="goal_topic" value="/global_path_node/local_goal_base" />
+    <param name="history_topic" value="/history_buffer_node/history" />
+    <param name="waypoints_topic" value="/inference_node/waypoints" />
+    <param name="cmd_topic" value="$(arg cmd_topic)" />
+    <param name="cmd_msg_type" value="$(arg cmd_msg_type)" />
+    <param name="use_gazebo_models" value="$(arg use_gazebo_visuals)" />
+    <param name="gazebo_reference_frame" value="world" />
+  </node>
+</launch>
